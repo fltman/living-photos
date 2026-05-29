@@ -1,0 +1,89 @@
+@import "tailwindcss";
+
+body {
+  margin: 0;
+  background: #0a0a0a;
+  color: #f5f5f5;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Indeterminate progress bar used while Opus identifies the image. */
+@keyframes indeterminate {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(410%);
+  }
+}
+.indeterminate-bar {
+  animation: indeterminate 1.3s ease-in-out infinite;
+}
+
+/* Markdown rendering inside chat bubbles (Tailwind preflight strips defaults). */
+.md-content > :first-child {
+  margin-top: 0;
+}
+.md-content > :last-child {
+  margin-bottom: 0;
+}
+.md-content p {
+  margin: 0.5em 0;
+}
+.md-content ul,
+.md-content ol {
+  margin: 0.5em 0;
+  padding-left: 1.25em;
+}
+.md-content ul {
+  list-style: disc;
+}
+.md-content ol {
+  list-style: decimal;
+}
+.md-content li {
+  margin: 0.2em 0;
+}
+.md-content strong {
+  font-weight: 600;
+}
+/* Persona convention: *italics* are stage directions / physical movement.
+   Color them so dialogue (plain text) and action read as distinct layers. */
+.md-content em {
+  font-style: italic;
+  color: #e0a96d;
+  opacity: 0.92;
+}
+.md-content code {
+  background: rgba(255, 255, 255, 0.12);
+  padding: 0.1em 0.35em;
+  border-radius: 0.25em;
+  font-size: 0.9em;
+}
+.md-content pre {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 0.7em;
+  border-radius: 0.5em;
+  overflow-x: auto;
+  margin: 0.5em 0;
+}
+.md-content pre code {
+  background: none;
+  padding: 0;
+}
+.md-content h1,
+.md-content h2,
+.md-content h3 {
+  font-weight: 600;
+  margin: 0.6em 0 0.3em;
+}
+.md-content a {
+  color: #facc15;
+  text-decoration: underline;
+}
+.md-content blockquote {
+  border-left: 3px solid rgba(255, 255, 255, 0.3);
+  padding-left: 0.75em;
+  margin: 0.5em 0;
+  color: rgba(255, 255, 255, 0.8);
+}

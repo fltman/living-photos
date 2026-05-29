@@ -1,0 +1,19 @@
+# Secrets — never commit
+.env
+**/.env
+*.local
+
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+dist/
+
+# OS
+.DS_Store
+
+# TS build info
+*.tsbuildinfo
