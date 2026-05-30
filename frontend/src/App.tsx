@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { loadVoices } from "./lib/voices";
 import { ChatPanel } from "./components/ChatPanel";
 import { VoicePanel } from "./components/VoicePanel";
 import { ImageCanvas } from "./components/ImageCanvas";
@@ -13,6 +14,11 @@ export default function App() {
   const { identify, loading, error } = useIdentify();
   const [persona, setPersona] = useState<Persona | null>(null);
   const [mode, setMode] = useState<Mode>("idle");
+
+  // Warm the voice pool cache (localStorage + memo) so voice mode starts fast.
+  useEffect(() => {
+    void loadVoices().catch(() => {});
+  }, []);
 
   async function handleSelect(img: HTMLImageElement, box: PersonBox) {
     setPersona(null);

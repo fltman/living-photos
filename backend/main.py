@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routes import chat, identify, voice
+from routes import chat, identify, voice, voices
 
 load_dotenv()
 
@@ -28,6 +28,7 @@ app.add_middleware(
 app.include_router(identify.router)
 app.include_router(chat.router)
 app.include_router(voice.router)
+app.include_router(voices.router)
 
 
 @app.get("/health")

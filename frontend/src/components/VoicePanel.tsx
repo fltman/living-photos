@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useConversation } from "@elevenlabs/react";
-import { voiceIdFor } from "../lib/voiceMap";
+import { DEFAULT_VOICE, loadVoices, voiceIdFor } from "../lib/voices";
 import type { Persona } from "../lib/types";
 
 const API = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
@@ -35,6 +35,15 @@ export function VoicePanel({ persona, onClose }: Props) {
       if (!resp.ok) throw new Error(`signed-url ${resp.status}: ${await resp.text()}`);
       const { signed_url } = await resp.json();
 
+      // Pick a voice from the (cached) account voice pool; fall back gracefully.
+      let voiceId = DEFAULT_VOICE;
+      try {
+        const pool = await loadVoices();
+        voiceId = voiceIdFor(pool, persona.suggested_voice, persona.person_name);
+      } catch {
+        /* /voices unreachable — DEFAULT_VOICE is fine */
+      }
+
       await conversation.startSession({
         signedUrl: signed_url,
         overrides: {
@@ -43,7 +52,7 @@ export function VoicePanel({ persona, onClose }: Props) {
             firstMessage: persona.first_message,
             language: persona.language as Lang,
           },
-          tts: { voiceId: voiceIdFor(persona.suggested_voice, persona.person_name) },
+          tts: { voiceId },
         },
       });
     } catch (e) {
