@@ -17,3 +17,6 @@ dist/
 
 # TS build info
 *.tsbuildinfo
+
+# Upload artifact
+living-photos-upload.zip
