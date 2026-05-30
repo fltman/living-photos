@@ -1,13 +1,10 @@
 import { useCallback, useRef, useState } from "react";
 import type { Persona } from "../lib/types";
-import { API_BASE } from "../lib/api";
+import { streamChat, type ChatMessage } from "../lib/openrouter";
 
-export interface ChatMessage {
-  role: "user" | "assistant";
-  content: string;
-}
+export type { ChatMessage };
 
-/** Streaming chat against the identified persona. */
+/** Streaming chat against the identified persona (direct OpenRouter call). */
 export function useChat(persona: Persona) {
   const [messages, setMessages] = useState<ChatMessage[]>(
     persona.first_message
@@ -20,43 +17,30 @@ export function useChat(persona: Persona) {
 
   const send = useCallback(
     async (text: string) => {
-      const history = [
+      const history: ChatMessage[] = [
         ...messagesRef.current,
-        { role: "user" as const, content: text },
+        { role: "user", content: text },
       ];
       setMessages([...history, { role: "assistant", content: "" }]);
       setStreaming(true);
 
+      let acc = "";
       try {
-        const resp = await fetch(`${API_BASE}/chat`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            persona_system_prompt: persona.persona_system_prompt,
-            messages: history,
-          }),
-        });
-        if (!resp.ok || !resp.body) throw new Error(`${resp.status}`);
-
-        const reader = resp.body.getReader();
-        const decoder = new TextDecoder();
-        let acc = "";
-        for (;;) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          acc += decoder.decode(value, { stream: true });
+        await streamChat(persona.persona_system_prompt, history, (chunk) => {
+          acc += chunk;
           setMessages((prev) => {
             const next = [...prev];
             next[next.length - 1] = { role: "assistant", content: acc };
             return next;
           });
-        }
-      } catch {
+        });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
         setMessages((prev) => {
           const next = [...prev];
           next[next.length - 1] = {
             role: "assistant",
-            content: "[fel vid svar — kontrollera backend]",
+            content: acc || `[fel vid svar: ${msg}]`,
           };
           return next;
         });

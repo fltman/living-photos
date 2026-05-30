@@ -2,41 +2,48 @@
 
 Ladda upp en känd bild, dra en ruta runt en person, och identifiera + chatta/prata med hen.
 
-## Status
-- [x] **Steg 1–2:** upload → dra en ruta runt personen → crop → `/identify` (Claude Opus vision via OpenRouter) → visar persona.
-- [x] **Steg 3:** chattläge — streamande textsamtal med personan (`/chat`, Opus via OpenRouter).
-- [x] **Steg 4:** röstläge — ElevenLabs Conversational AI med persona injicerad via overrides (`/voice/signed-url` + `VoicePanel`). Kräver ELEVENLABS-nycklar + en agent med overrides på.
+**Helt klient-sida (bring-your-own-keys).** Appen är en statisk SPA utan backend: varje
+användare lägger in sina egna API-nycklar (OpenRouter + ElevenLabs), som sparas i
+`localStorage` och skickas *direkt* till tjänsterna — aldrig till någon server. Det gör
+att appen kan hostas var som helst (statiskt) med gratis HTTPS.
 
-## Röstläge — setup
-1. Skapa en agent i ElevenLabs (Agents / Conversational AI), välj en **multilingual** TTS-modell.
-2. Under agentens **Security**-flik: aktivera overrides för `system prompt`, `first message`, `voice` och `language`.
-3. Fyll i `ELEVENLABS_API_KEY` + `ELEVENLABS_AGENT_ID` i backend `.env`.
-4. Röst-bucketarna (`male_old` etc.) mappas till voice-ID:n i `frontend/src/lib/voiceMap.ts` — byt mot egna röster vid behov.
+## Funktioner
+- Upload eller **kamera** (mobil) → dra en ruta runt en person.
+- **Identifiering**: Claude Opus (vision, via OpenRouter) känner igen scen + person och
+  bygger en persona.
+- **Chatt**: streamande textsamtal med personan.
+- **Röst**: live-samtal via ElevenLabs Conversational AI, persona injicerad via overrides,
+  röst vald ur ditt eget röstbibliotek (matchar t.o.m. klonade röster på namn).
+- Responsiv, fungerar på mobil. Personen inleder på sitt modersmål.
 
-## Arkitektur
-- **frontend/** — React + Vite + TS + Tailwind. Manuell markering: dra en ruta runt personen (koordinater i bildens native pixelrymd).
-- **backend/** — tunn FastAPI. Döljer nycklar, proxar Opus-vision, mintar ElevenLabs signed URL.
+## Nycklar (Inställningar ⚙︎)
+- **OpenRouter API-nyckel** (krävs för identifiering + chatt) — https://openrouter.ai/keys
+- **ElevenLabs API-nyckel + Agent-ID** (för röstläget). Agenten måste ha *overrides* på
+  (system prompt, first message, voice, language) och en *multilingual* TTS-modell.
 
 ## Köra lokalt
-
-### Backend
-```bash
-cd backend
-python3 -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env   # fyll i OPENROUTER_API_KEY (+ ev. OPENROUTER_MODEL)
-uvicorn main:app --reload --port 8000
-```
-
-### Frontend
 ```bash
 cd frontend
 npm install
-cp .env.example .env   # VITE_API_URL=http://localhost:8000
-npm run dev            # http://localhost:5173
+npm run dev      # http://localhost:5173
 ```
+Öppna appen, klicka ⚙︎ och lägg in dina nycklar.
+
+## Bygga / deploya (statiskt)
+```bash
+cd frontend
+npm run build    # -> frontend/dist/
+```
+`dist/` är en statisk SPA — deploya på valfri statisk host (Cloudflare Pages, Vercel,
+Netlify, GitHub Pages). HTTPS krävs för röstläget (mikrofonen via getUserMedia).
 
 ## Att tänka på
-- Markeringen är helt manuell (drag-to-draw) — pålitligt även på svartvita/vintagefoton där objektdetektering ofta missar.
-- Identifieringen är AI:ns gissning; visa en disclaimer i UI:t.
-- Opus debiteras per `/identify`-anrop — överväg caching per bild+box.
+- Nycklar i `localStorage` kan läsas av JS på sidan (XSS) — standard BYOK-avvägning. Det
+  är användarens egen nyckel på egen enhet; appen laddar inga tredjeparts-skript.
+- Markering är manuell (drag-to-draw) — pålitligt även på svartvita/vintagefoton.
+- Identifieringen är AI:ns gissning; visa gärna en disclaimer.
+
+## `backend/` (legacy)
+Den tidigare FastAPI-proxyn finns kvar men används inte längre av appen. Den kan köras om
+man hellre vill hålla nycklarna server-sida — sätt då `VITE_API_URL` och återinför
+proxy-anropen. För standard-BYOK-flödet behövs den inte.

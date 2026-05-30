@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useConversation } from "@elevenlabs/react";
-import { DEFAULT_VOICE, loadVoices, voiceIdFor } from "../lib/voices";
+import { DEFAULT_VOICE, getSignedUrl, loadVoices, voiceIdFor } from "../lib/voices";
 import type { Persona } from "../lib/types";
-import { API_BASE } from "../lib/api";
 
 // ElevenLabs language codes we allow the persona to open in (the agent must
 // use a multilingual TTS model). Opus returns the person's native language.
@@ -30,9 +29,7 @@ export function VoicePanel({ persona, onClose }: Props) {
       // Mic permission must be granted before the session opens.
       await navigator.mediaDevices.getUserMedia({ audio: true });
 
-      const resp = await fetch(`${API_BASE}/voice/signed-url`);
-      if (!resp.ok) throw new Error(`signed-url ${resp.status}: ${await resp.text()}`);
-      const { signed_url } = await resp.json();
+      const signed_url = await getSignedUrl();
 
       // Pick a voice from the (cached) account voice pool; fall back gracefully.
       let voiceId = DEFAULT_VOICE;

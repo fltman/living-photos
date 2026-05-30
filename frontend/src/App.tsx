@@ -4,8 +4,10 @@ import { ChatPanel } from "./components/ChatPanel";
 import { VoicePanel } from "./components/VoicePanel";
 import { ImageCanvas } from "./components/ImageCanvas";
 import { IdentifyProgress } from "./components/IdentifyProgress";
+import { Settings } from "./components/Settings";
 import { useIdentify } from "./hooks/useIdentify";
 import { renderCrop, renderFullWithMarking } from "./lib/cropImage";
+import { hasIdentifyKeys, hasVoiceKeys } from "./lib/settings";
 import type { Persona, PersonBox } from "./lib/types";
 
 type Mode = "idle" | "chat" | "voice";
@@ -14,13 +16,19 @@ export default function App() {
   const { identify, loading, error } = useIdentify();
   const [persona, setPersona] = useState<Persona | null>(null);
   const [mode, setMode] = useState<Mode>("idle");
+  // Open settings automatically on first run if the required key is missing.
+  const [settingsOpen, setSettingsOpen] = useState(() => !hasIdentifyKeys());
 
-  // Warm the voice pool cache (localStorage + memo) so voice mode starts fast.
+  // Warm the voice pool cache once keys are present, so voice mode starts fast.
   useEffect(() => {
-    void loadVoices().catch(() => {});
-  }, []);
+    if (hasVoiceKeys()) void loadVoices().catch(() => {});
+  }, [settingsOpen]);
 
   async function handleSelect(img: HTMLImageElement, box: PersonBox) {
+    if (!hasIdentifyKeys()) {
+      setSettingsOpen(true);
+      return;
+    }
     setPersona(null);
     setMode("idle");
     const full = renderFullWithMarking(img, box);
@@ -28,15 +36,32 @@ export default function App() {
     setPersona(await identify(full, crop));
   }
 
+  function startVoice() {
+    if (!hasVoiceKeys()) {
+      setSettingsOpen(true);
+      return;
+    }
+    setMode("voice");
+  }
+
   return (
     <div className="mx-auto max-w-6xl p-4 md:p-6">
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold">
-          Living Photos <span className="text-yellow-400">·</span>
-        </h1>
-        <p className="text-sm text-white/60">
-          Ladda upp en känd bild och dra en ruta runt en person för att låsa ramen.
-        </p>
+      <header className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold">
+            Living Photos <span className="text-yellow-400">·</span>
+          </h1>
+          <p className="text-sm text-white/60">
+            Ladda upp en känd bild och dra en ruta runt en person för att låsa ramen.
+          </p>
+        </div>
+        <button
+          onClick={() => setSettingsOpen(true)}
+          className="shrink-0 rounded-lg border border-white/15 px-3 py-2 text-sm hover:bg-white/10"
+          title="Inställningar / nycklar"
+        >
+          ⚙︎
+        </button>
       </header>
 
       <div className="grid grid-cols-1 gap-4 md:gap-8 md:grid-cols-[1fr_360px]">
@@ -94,7 +119,7 @@ export default function App() {
                   Chatta
                 </button>
                 <button
-                  onClick={() => setMode("voice")}
+                  onClick={startVoice}
                   className="flex-1 min-h-11 rounded-lg border border-white/20 px-3 py-2.5 text-base hover:bg-white/10"
                 >
                   Tala
@@ -106,6 +131,8 @@ export default function App() {
           )}
         </aside>
       </div>
+
+      <Settings open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }

@@ -1,12 +1,11 @@
-/** Voices are loaded dynamically from the account (via the backend /voices
- * endpoint) and cached: a module-level promise for the session, plus
- * localStorage with a TTL so a page reload doesn't refetch. A persona's
- * `suggested_voice` (e.g. "female_young") narrows the pool by gender+age, and
- * the character's name seeds a deterministic pick — stable per character,
- * varied across characters. */
-import { API_BASE } from "./api";
+/** Direct ElevenLabs calls from the browser using the user's own key. Voices
+ * are fetched from the account, normalised to {id,name,gender,age}, and cached
+ * in localStorage (TTL) + a session memo. A persona's `suggested_voice` narrows
+ * the pool by gender+age; the character's name seeds a deterministic pick (and
+ * can match a same-named cloned voice). */
+import { getSettings } from "./settings";
 
-const LS_KEY = "lp_voices_v2";
+const LS_KEY = "lp_voices_v3";
 const TTL = 24 * 3600 * 1000; // 24h
 
 export interface Voice {
@@ -16,8 +15,15 @@ export interface Voice {
   age: "old" | "adult" | "young";
 }
 
-/** Safe fallback if /voices is unreachable (Mark — middle-aged male). */
+/** Safe fallback if voices can't be fetched (Mark — middle-aged male). */
 export const DEFAULT_VOICE = "1SM7GgM6IMuvQlz2BwM3";
+
+function mapAge(age: string | undefined): Voice["age"] {
+  const a = (age || "").toLowerCase();
+  if (a.includes("old") || a.includes("senior") || a.includes("elder")) return "old";
+  if (a.includes("young")) return "young";
+  return "adult";
+}
 
 let memo: Promise<Voice[]> | null = null;
 
@@ -36,17 +42,54 @@ export function loadVoices(): Promise<Voice[]> {
       /* ignore bad cache */
     }
 
-    const resp = await fetch(`${API_BASE}/voices`);
-    if (!resp.ok) throw new Error(`voices ${resp.status}`);
-    const data = (await resp.json()) as Voice[];
-    try {
-      localStorage.setItem(LS_KEY, JSON.stringify({ ts: Date.now(), data }));
-    } catch {
-      /* storage full / disabled — fine, session memo still applies */
+    const { elevenlabsKey } = getSettings();
+    if (!elevenlabsKey) throw new Error("Ingen ElevenLabs-nyckel angiven.");
+
+    const out: Voice[] = [];
+    let token: string | undefined;
+    for (let page = 0; page < 10; page++) {
+      const url = new URL("https://api.elevenlabs.io/v2/voices");
+      url.searchParams.set("page_size", "100");
+      if (token) url.searchParams.set("next_page_token", token);
+      const resp = await fetch(url, { headers: { "xi-api-key": elevenlabsKey } });
+      if (!resp.ok) throw new Error(`ElevenLabs voices ${resp.status}`);
+      const data = await resp.json();
+      for (const v of data.voices ?? []) {
+        const labels = v.labels ?? {};
+        const gender = String(labels.gender ?? "").toLowerCase();
+        out.push({
+          id: v.voice_id,
+          name: v.name ?? "",
+          gender: gender === "male" || gender === "female" ? gender : "",
+          age: mapAge(labels.age),
+        });
+      }
+      if (!data.has_more) break;
+      token = data.next_page_token;
+      if (!token) break;
     }
-    return data;
+
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify({ ts: Date.now(), data: out }));
+    } catch {
+      /* storage full / disabled — session memo still applies */
+    }
+    return out;
   })();
   return memo;
+}
+
+/** Mint a signed WebSocket URL for the user's agent using their own key. */
+export async function getSignedUrl(): Promise<string> {
+  const { elevenlabsKey, elevenlabsAgentId } = getSettings();
+  if (!elevenlabsKey || !elevenlabsAgentId) {
+    throw new Error("ElevenLabs-nyckel eller agent-id saknas.");
+  }
+  const url = new URL("https://api.elevenlabs.io/v1/convai/conversation/get-signed-url");
+  url.searchParams.set("agent_id", elevenlabsAgentId);
+  const resp = await fetch(url, { headers: { "xi-api-key": elevenlabsKey } });
+  if (!resp.ok) throw new Error(`signed-url ${resp.status}: ${(await resp.text()).slice(0, 200)}`);
+  return (await resp.json()).signed_url as string;
 }
 
 /** Stable string hash (djb2) so a seed always maps to the same voice. */
@@ -57,27 +100,18 @@ function hash(s: string): number {
 }
 
 /** Pick a voice from `pool` for the persona.
- *  1. Name hint: if a voice's name shares a distinctive token with the
- *     character's name (e.g. a cloned "Churchill" voice), prefer it — these are
- *     often custom clones of that very person. Gender-aligned matches win.
- *  2. Otherwise pick by gender + age from `suggested` (e.g. "male_old"),
- *     varied deterministically by `seed`.
- * Falls back gracefully to any gendered voice, then DEFAULT_VOICE. */
+ *  1. Name hint: match a voice whose name shares a distinctive token with the
+ *     character, or is the character's initials (e.g. "dt2" for Donald Trump) —
+ *     often a custom clone of that person. Gender-aligned matches win.
+ *  2. Otherwise pick by gender + age, varied deterministically by `seed`. */
 export function voiceIdFor(pool: Voice[], suggested: string, seed = ""): string {
   if (!pool.length) return DEFAULT_VOICE;
   const [gender, age] = suggested.split("_");
 
-  // 1. Name hint. Match a voice whose name shares a distinctive token (>= 4
-  //    chars) with the character's name, OR whose name is the character's
-  //    initials (e.g. a "dt" clone for "Donald Trump"). Custom clones are
-  //    often named exactly this way. Gender-aligned matches win.
   const words = seed.toLowerCase().split(/[^a-z0-9åäö]+/).filter(Boolean);
   const tokens = words.filter((t) => t.length >= 4);
   const initials = words.length >= 2 ? words.map((w) => w[0]).join("") : "";
 
-  // Initials match: a name token that is the initials, optionally with a digit
-  // suffix ("dt", "dt2") — clones are often named this way. Avoids matching
-  // arbitrary words that merely contain the letters (e.g. "soldat").
   const isInitials = (t: string) =>
     t === initials ||
     (t.startsWith(initials) && /^\d+$/.test(t.slice(initials.length)));
@@ -99,7 +133,6 @@ export function voiceIdFor(pool: Voice[], suggested: string, seed = ""): string 
     if (named.length) return named[hash(seed) % named.length].id;
   }
 
-  // 2. Gender + age.
   let candidates = pool.filter((v) => v.gender === gender && v.age === age);
   if (candidates.length === 0) candidates = pool.filter((v) => v.gender === gender);
   if (candidates.length === 0) candidates = pool.filter((v) => v.gender !== "");
