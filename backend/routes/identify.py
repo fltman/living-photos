@@ -24,10 +24,10 @@ JSON-objekt (ingen markdown, ingen text runt om) med exakt dessa fält:
   "scene": "Kort beskrivning av bilden/situationen och var/när den togs.",
   "person_name": "Den markerade personens namn, eller en beskrivande roll om okänd.",
   "confidence": 0.0-1.0,
-  "persona_system_prompt": "En system-prompt skriven i andra person ('Du ÄR ...') som låter en röst-/chattagent spela personen trovärdigt, i jag-form, med rätt epok, tonfall och kunskapshorisont. Personen ska INTE veta om saker som hänt efter bildens tid.",
-  "first_message": "En kort öppningsreplik som personen säger när samtalet börjar, in character.",
+  "persona_system_prompt": "En system-prompt skriven i andra person ('Du ÄR ...') som låter en röst-/chattagent spela personen trovärdigt, i jag-form, med rätt epok, tonfall och kunskapshorisont. Personen ska INTE veta om saker som hänt efter bildens tid. Personen talar och inleder på sitt modersmål, men förstår och kan svara besökaren om denne byter språk.",
+  "first_message": "En kort öppningsreplik som personen säger när samtalet börjar, in character — skriven på personens MODERSMÅL (samma språk som fältet 'language' nedan).",
   "suggested_voice": "en av: male_old, male_adult, male_young, female_old, female_adult, female_young",
-  "language": "sv eller en (vad personen rimligen talar i samtalet)"
+  "language": "Personens modersmål som ISO-639-1-kod. MÅSTE vara en av dessa (ElevenLabs-stödda): en, sv, fr, de, es, it, pt, ru, nl, pl, ja, zh, ar, hi, ko, tr, da, no, fi, el, cs, uk, ro, hu. T.ex. en amerikansk person -> en, en fransk -> fr, en tysk -> de, en svensk -> sv. Välj den närmaste i listan om exakt språk saknas."
 }
 
 Om du är osäker på vem personen är: sätt låg confidence och låt persona spela en

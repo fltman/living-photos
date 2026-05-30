@@ -5,6 +5,13 @@ import type { Persona } from "../lib/types";
 
 const API = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
+// ElevenLabs language codes we allow the persona to open in (the agent must
+// use a multilingual TTS model). Opus returns the person's native language.
+type Lang =
+  | "en" | "sv" | "fr" | "de" | "es" | "it" | "pt" | "ru" | "nl" | "pl"
+  | "ja" | "zh" | "ar" | "hi" | "ko" | "tr" | "da" | "no" | "fi" | "el"
+  | "cs" | "uk" | "ro" | "hu";
+
 interface Props {
   persona: Persona;
   onClose: () => void;
@@ -34,9 +41,9 @@ export function VoicePanel({ persona, onClose }: Props) {
           agent: {
             prompt: { prompt: persona.persona_system_prompt },
             firstMessage: persona.first_message,
-            language: persona.language as "sv" | "en",
+            language: persona.language as Lang,
           },
-          tts: { voiceId: voiceIdFor(persona.suggested_voice) },
+          tts: { voiceId: voiceIdFor(persona.suggested_voice, persona.person_name) },
         },
       });
     } catch (e) {
