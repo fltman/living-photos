@@ -50,13 +50,16 @@ export function ImageCanvas({ onSelect }: Props) {
     };
   }
 
-  function onMouseDown(e: React.MouseEvent) {
+  function onPointerDown(e: React.PointerEvent) {
+    // Only react to the primary pointer (ignore 2nd finger / right-click).
+    if (!e.isPrimary || (e.pointerType === "mouse" && e.button !== 0)) return;
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     const n = toNatural(e.clientX, e.clientY);
     dragStart.current = { x: n.x, y: n.y };
     setDraft(null);
   }
 
-  function onMouseMove(e: React.MouseEvent) {
+  function onPointerMove(e: React.PointerEvent) {
     const start = dragStart.current;
     if (!start) return;
     const n = toNatural(e.clientX, e.clientY);
@@ -68,7 +71,10 @@ export function ImageCanvas({ onSelect }: Props) {
     });
   }
 
-  function onMouseUp() {
+  function onPointerUp(e: React.PointerEvent) {
+    if ((e.currentTarget as HTMLElement).hasPointerCapture?.(e.pointerId)) {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    }
     dragStart.current = null;
     if (draft && draft.w > 10 && draft.h > 10) {
       setSelected(draft);
@@ -79,32 +85,42 @@ export function ImageCanvas({ onSelect }: Props) {
 
   return (
     <div className="flex flex-col gap-3">
-      <label className="w-fit cursor-pointer rounded-lg bg-yellow-400 px-4 py-2 text-center font-medium text-black hover:bg-yellow-300">
-        Ladda upp bild
-        <input type="file" accept="image/*" onChange={handleFile} className="hidden" />
-      </label>
+      <div className="flex flex-wrap gap-2">
+        <label className="inline-flex min-h-11 w-fit cursor-pointer items-center justify-center rounded-lg bg-yellow-400 px-5 py-3 text-center text-base font-medium text-black hover:bg-yellow-300">
+          Ladda upp bild
+          <input type="file" accept="image/*" onChange={handleFile} className="hidden" />
+        </label>
+        <label className="inline-flex min-h-11 w-fit cursor-pointer items-center justify-center rounded-lg border border-yellow-400 px-5 py-3 text-center text-base font-medium text-yellow-400 hover:bg-yellow-400/10">
+          Ta foto
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handleFile}
+            className="hidden"
+          />
+        </label>
+      </div>
 
       {src && (
-        <p className="text-xs text-white/50">
-          <span className="text-yellow-400">Dra en ruta</span> med musen runt en person i bilden
+        <p className="text-sm text-white/60 md:text-xs">
+          <span className="text-yellow-400">Dra en ruta</span> runt en person i bilden
           för att identifiera och prata med hen.
         </p>
       )}
 
       {src && (
         <div
-          className="relative w-fit self-start cursor-crosshair select-none"
-          onMouseDown={onMouseDown}
-          onMouseMove={onMouseMove}
-          onMouseUp={onMouseUp}
-          onMouseLeave={() => {
-            dragStart.current = null;
-          }}
+          className="relative w-fit max-w-full self-start cursor-crosshair select-none touch-none"
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
         >
           <img
             ref={imgRef}
             src={src}
-            className="max-h-[75vh] w-auto rounded-lg"
+            className="block max-h-[60vh] w-auto max-w-full rounded-lg md:max-h-[75vh]"
             alt="uppladdad"
             draggable={false}
           />

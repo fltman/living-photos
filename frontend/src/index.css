@@ -1,10 +1,15 @@
 @import "tailwindcss";
 
+html {
+  -webkit-text-size-adjust: 100%; /* stop iOS Safari auto-inflating text on rotate */
+}
+
 body {
   margin: 0;
   background: #0a0a0a;
   color: #f5f5f5;
   font-family: ui-sans-serif, system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent; /* kill the grey flash on tap for buttons */
 }
 
 /* Indeterminate progress bar used while Opus identifies the image. */

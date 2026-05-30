@@ -4,7 +4,8 @@
  * `suggested_voice` (e.g. "female_young") narrows the pool by gender+age, and
  * the character's name seeds a deterministic pick — stable per character,
  * varied across characters. */
-const API = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+import { API_BASE } from "./api";
+
 const LS_KEY = "lp_voices_v2";
 const TTL = 24 * 3600 * 1000; // 24h
 
@@ -35,7 +36,7 @@ export function loadVoices(): Promise<Voice[]> {
       /* ignore bad cache */
     }
 
-    const resp = await fetch(`${API}/voices`);
+    const resp = await fetch(`${API_BASE}/voices`);
     if (!resp.ok) throw new Error(`voices ${resp.status}`);
     const data = (await resp.json()) as Voice[];
     try {

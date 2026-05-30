@@ -31,7 +31,7 @@ export function ChatPanel({ persona, onClose }: Props) {
         <h2 className="text-lg font-medium">{persona.person_name}</h2>
         <button
           onClick={onClose}
-          className="text-sm text-white/50 hover:text-white"
+          className="-mr-2 px-2 py-1 text-sm text-white/50 hover:text-white"
         >
           ✕ stäng
         </button>
@@ -73,12 +73,14 @@ export function ChatPanel({ persona, onClose }: Props) {
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           placeholder={`Skriv till ${persona.person_name}…`}
-          className="flex-1 rounded-lg border border-white/20 bg-black/40 px-3 py-2 text-sm outline-none focus:border-yellow-400"
+          inputMode="text"
+          enterKeyHint="send"
+          className="flex-1 rounded-lg border border-white/20 bg-black/40 px-3 py-2.5 text-base outline-none focus:border-yellow-400 md:py-2 md:text-sm"
         />
         <button
           type="submit"
           disabled={streaming}
-          className="rounded-lg bg-yellow-400 px-4 py-2 font-medium text-black disabled:opacity-40"
+          className="min-h-11 rounded-lg bg-yellow-400 px-4 py-2.5 font-medium text-black disabled:opacity-40"
         >
           Skicka
         </button>

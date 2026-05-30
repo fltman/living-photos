@@ -1,7 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import type { Persona } from "../lib/types";
-
-const API = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+import { API_BASE } from "../lib/api";
 
 export interface ChatMessage {
   role: "user" | "assistant";
@@ -29,7 +28,7 @@ export function useChat(persona: Persona) {
       setStreaming(true);
 
       try {
-        const resp = await fetch(`${API}/chat`, {
+        const resp = await fetch(`${API_BASE}/chat`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

@@ -1,7 +1,6 @@
 import { useCallback, useState } from "react";
 import type { Persona } from "../lib/types";
-
-const API = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+import { API_BASE } from "../lib/api";
 
 export function useIdentify() {
   const [loading, setLoading] = useState(false);
@@ -12,7 +11,7 @@ export function useIdentify() {
       setLoading(true);
       setError(null);
       try {
-        const resp = await fetch(`${API}/identify`, {
+        const resp = await fetch(`${API_BASE}/identify`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ full_image: fullImage, crop_image: cropImage }),

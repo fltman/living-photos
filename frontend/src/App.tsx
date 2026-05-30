@@ -29,20 +29,20 @@ export default function App() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl p-6">
+    <div className="mx-auto max-w-6xl p-4 md:p-6">
       <header className="mb-6">
         <h1 className="text-2xl font-semibold">
           Living Photos <span className="text-yellow-400">·</span>
         </h1>
         <p className="text-sm text-white/60">
-          Ladda upp en känd bild, hovra över en person och klicka för att låsa ramen.
+          Ladda upp en känd bild och dra en ruta runt en person för att låsa ramen.
         </p>
       </header>
 
-      <div className="grid grid-cols-1 gap-8 md:grid-cols-[1fr_360px]">
+      <div className="grid grid-cols-1 gap-4 md:gap-8 md:grid-cols-[1fr_360px]">
         <ImageCanvas onSelect={handleSelect} />
 
-        <aside className="flex h-[78vh] flex-col overflow-hidden rounded-xl border border-white/10 bg-white/5 p-5">
+        <aside className="flex min-h-[60vh] flex-col overflow-hidden rounded-xl border border-white/10 bg-white/5 p-4 md:h-[78vh] md:min-h-0 md:p-5">
           {mode === "chat" && persona ? (
             <ChatPanel persona={persona} onClose={() => setMode("idle")} />
           ) : mode === "voice" && persona ? (
@@ -89,13 +89,13 @@ export default function App() {
               <div className="flex gap-2 pt-2">
                 <button
                   onClick={() => setMode("chat")}
-                  className="flex-1 rounded-lg bg-yellow-400 px-3 py-2 font-medium text-black hover:bg-yellow-300"
+                  className="flex-1 min-h-11 rounded-lg bg-yellow-400 px-3 py-2.5 text-base font-medium text-black hover:bg-yellow-300"
                 >
                   Chatta
                 </button>
                 <button
                   onClick={() => setMode("voice")}
-                  className="flex-1 rounded-lg border border-white/20 px-3 py-2 hover:bg-white/10"
+                  className="flex-1 min-h-11 rounded-lg border border-white/20 px-3 py-2.5 text-base hover:bg-white/10"
                 >
                   Tala
                 </button>
