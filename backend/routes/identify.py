@@ -41,14 +41,47 @@ class IdentifyRequest(BaseModel):
 
 
 def _extract_json(text: str) -> dict:
-    """Models occasionally wrap JSON in prose or fences — pull out the object."""
+    """Models occasionally wrap JSON in prose/fences or add trailing text.
+    Pull out the first complete, balanced JSON object."""
+    text = text.strip()
+    if text.startswith("```"):  # strip ```json … ``` fences
+        text = re.sub(r"^```[a-zA-Z]*\s*", "", text)
+        text = re.sub(r"\s*```$", "", text).strip()
+
     try:
         return json.loads(text)
     except json.JSONDecodeError:
-        match = re.search(r"\{.*\}", text, re.DOTALL)
-        if not match:
-            raise HTTPException(502, f"Opus did not return JSON: {text[:200]}")
-        return json.loads(match.group(0))
+        pass
+
+    # Scan for the first balanced top-level object, honouring strings/escapes,
+    # so trailing data or a second block can't break parsing.
+    start = text.find("{")
+    if start != -1:
+        depth = 0
+        in_str = False
+        esc = False
+        for i in range(start, len(text)):
+            ch = text[i]
+            if in_str:
+                if esc:
+                    esc = False
+                elif ch == "\\":
+                    esc = True
+                elif ch == '"':
+                    in_str = False
+            elif ch == '"':
+                in_str = True
+            elif ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    try:
+                        return json.loads(text[start : i + 1])
+                    except json.JSONDecodeError:
+                        break
+
+    raise HTTPException(502, f"Could not parse JSON from model: {text[:200]}")
 
 
 @router.post("/identify")
@@ -89,5 +122,8 @@ async def identify(req: IdentifyRequest):
     if resp.status_code != 200:
         raise HTTPException(resp.status_code, f"OpenRouter error: {resp.text[:300]}")
 
-    content = resp.json()["choices"][0]["message"]["content"]
+    try:
+        content = resp.json()["choices"][0]["message"]["content"]
+    except (KeyError, IndexError, ValueError):
+        raise HTTPException(502, f"Unexpected OpenRouter response: {resp.text[:300]}")
     return _extract_json(content)
