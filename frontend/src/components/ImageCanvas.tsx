@@ -93,7 +93,7 @@ export function ImageCanvas({ onSelect }: Props) {
 
       {src && (
         <div
-          className="relative inline-block cursor-crosshair select-none"
+          className="relative w-fit self-start cursor-crosshair select-none"
           onMouseDown={onMouseDown}
           onMouseMove={onMouseMove}
           onMouseUp={onMouseUp}
