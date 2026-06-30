@@ -1,5 +1,7 @@
 # Living Photos
 
+[![Support me on Patreon](https://img.shields.io/badge/Patreon-Support%20my%20work-FF424D?style=flat&logo=patreon&logoColor=white)](https://www.patreon.com/AndersBjarby)
+
 Ladda upp en känd bild, dra en ruta runt en person, och identifiera + chatta/prata med hen.
 
 **Helt klient-sida (bring-your-own-keys).** Appen är en statisk SPA utan backend: varje
