@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useConversation } from "@elevenlabs/react";
-import { DEFAULT_VOICE, getSignedUrl, loadVoices, voiceIdFor } from "../lib/voices";
+import { getSignedUrl, loadVoices, pickVoice, type Voice } from "../lib/voices";
 import type { Persona } from "../lib/types";
 
 // ElevenLabs language codes we allow the persona to open in (the agent must
@@ -19,6 +19,8 @@ export function VoicePanel({ persona, onClose }: Props) {
   const conversation = useConversation();
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
+  const [voice, setVoice] = useState<Voice | null>(null);
+  const [voiceNote, setVoiceNote] = useState<string | null>(null);
 
   const connected = conversation.status === "connected";
 
@@ -31,14 +33,23 @@ export function VoicePanel({ persona, onClose }: Props) {
 
       const signed_url = await getSignedUrl();
 
-      // Pick a voice from the (cached) account voice pool; fall back gracefully.
-      let voiceId = DEFAULT_VOICE;
+      // Pick a voice from the agent's voice list (or the account pool). If
+      // nothing fits, send no override so the agent's default voice is used.
+      let picked: Voice | null = null;
+      setVoiceNote(null);
       try {
         const pool = await loadVoices();
-        voiceId = voiceIdFor(pool, persona.suggested_voice, persona.person_name);
-      } catch {
-        /* /voices unreachable — DEFAULT_VOICE is fine */
+        picked = pickVoice(pool, persona.suggested_voice, persona.person_name);
+        console.info(
+          `[voices] ${pool.length} röster (${pool[0]?.source ?? "?"}), önskad "${persona.suggested_voice}" →`,
+          picked ? `${picked.name} (${picked.id})` : "agentens standardröst",
+        );
+        if (!picked) setVoiceNote("Ingen passande röst i agentens lista – använder agentens standardröst.");
+      } catch (e) {
+        console.warn("[voices] kunde inte hämta röster:", e);
+        setVoiceNote(`Kunde inte hämta röster (${e instanceof Error ? e.message : String(e)}) – använder agentens standardröst.`);
       }
+      setVoice(picked);
 
       await conversation.startSession({
         signedUrl: signed_url,
@@ -48,7 +59,7 @@ export function VoicePanel({ persona, onClose }: Props) {
             firstMessage: persona.first_message,
             language: persona.language as Lang,
           },
-          tts: { voiceId },
+          ...(picked ? { tts: { voiceId: picked.id } } : {}),
         },
       });
     } catch (e) {
@@ -97,6 +108,12 @@ export function VoicePanel({ persona, onClose }: Props) {
         </p>
 
         {error && <p className="max-w-full text-center text-xs text-red-400">{error}</p>}
+        {voiceNote && <p className="max-w-full text-center text-xs text-yellow-300/80">{voiceNote}</p>}
+        {voice && (
+          <p className="text-xs text-white/40">
+            Röst: {voice.name} ({voice.source === "agent" ? "agentens lista" : "kontot"})
+          </p>
+        )}
 
         {!connected ? (
           <button

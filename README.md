@@ -15,7 +15,9 @@ att appen kan hostas var som helst (statiskt) med gratis HTTPS.
   bygger en persona.
 - **Chatt**: streamande textsamtal med personan.
 - **Röst**: live-samtal via ElevenLabs Conversational AI, persona injicerad via overrides,
-  röst vald ur ditt eget röstbibliotek (matchar t.o.m. klonade röster på namn).
+  röst vald ur agentens röstlista (fliken *Voices* på agenten i ElevenLabs – märk varje
+  röst med t.ex. "old lady", "young male", "child"), annars ur hela kontots
+  röstbibliotek. Klonade röster matchas på namn.
 - Responsiv, fungerar på mobil. Personen inleder på sitt modersmål.
 
 ## Nycklar (Inställningar ⚙︎)
